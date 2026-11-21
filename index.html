@@ -667,6 +667,7 @@ main,.pagina{overflow-x:clip}
       <a href="#/ai-lab" data-rota="/ai-lab">AI Lab</a>
       <a href="#/skills" data-rota="/skills">Habilidades</a>
       <a href="#/contact" data-rota="/contact">Contato</a>
+      <a href="#/prospeccao" data-rota="/prospeccao">Prospecção</a>
     </nav>
     <a class="btn" href="#/contact" data-rota="/contact">Fale comigo</a>
     <button class="btn-menu" id="btnMenu" type="button" aria-label="Abrir menu" aria-expanded="false" aria-controls="menuFull"><span></span><span></span><span></span></button>
@@ -679,6 +680,7 @@ main,.pagina{overflow-x:clip}
   <a href="#/ai-lab" data-rota="/ai-lab">AI Lab <small>04</small></a>
   <a href="#/skills" data-rota="/skills">Habilidades <small>05</small></a>
   <a href="#/contact" data-rota="/contact">Contato <small>06</small></a>
+  <a href="#/prospeccao" data-rota="/prospeccao">Prospecção <small>07</small></a>
 </div>
 
 <main id="principal">
@@ -1107,6 +1109,195 @@ main,.pagina{overflow-x:clip}
   </section>
 </div>
 
+<!-- ================= PROSPECCAO ================= -->
+<div class="pagina" data-pagina="/prospeccao">
+  <style>
+    .pros-grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:22px 0}
+    .pros-cartao{border:1px solid #26262b;border-radius:14px;padding:18px;background:#0d0d10}
+    .pros-cartao h3{margin:6px 0 8px;font-size:1.05rem}
+    .pros-cartao p{color:#9a9aa2;font-size:.92rem;line-height:1.55;margin:0}
+    .pros-preco{font-family:Michroma,monospace;font-size:clamp(2rem,6vw,3.2rem);line-height:1;margin:8px 0}
+    .pros-passos{counter-reset:pros;list-style:none;padding:0;margin:14px 0}
+    .pros-passos li{counter-increment:pros;padding:10px 0 10px 44px;position:relative;border-top:1px solid #1c1c20;color:#d8d8de;font-size:.95rem}
+    .pros-passos li:before{content:counter(pros,decimal-leading-zero);position:absolute;left:0;top:10px;font-family:Michroma,monospace;color:#F6F6F8}
+    .pros-pix{border:1px solid #26262b;border-radius:14px;padding:18px;background:#0d0d10;text-align:center}
+    .pros-pix .qr{display:flex;justify-content:center;margin:12px 0}
+    .pros-pix .qr canvas,.pros-pix .qr img,.pros-pix .qr table{border:8px solid #fff;border-radius:8px}
+    .pros-pix textarea{width:100%;min-height:64px;background:#050506;color:#c9c9cf;border:1px solid #26262b;border-radius:8px;padding:10px;font-family:monospace;font-size:12px;resize:vertical}
+    .pros-abas{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0}
+    .pros-aba{border:1px solid #26262b;background:transparent;color:#F6F6F8;border-radius:999px;padding:9px 16px;cursor:pointer;font:inherit}
+    .pros-aba.ativa{background:#F6F6F8;color:#050506}
+    .pros-filtros{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}
+    .pros-filtros input,.pros-filtros select{background:#0d0d10;color:#F6F6F8;border:1px solid #26262b;border-radius:10px;padding:10px 12px;font:inherit;min-width:0}
+    .pros-empresas{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+    .pros-empresa{border:1px solid #26262b;border-radius:12px;padding:14px;background:#0d0d10}
+    .pros-empresa h4{margin:4px 0 6px;font-size:1rem}
+    .pros-empresa p{color:#9a9aa2;font-size:.88rem;margin:2px 0}
+    .pros-etiqueta{display:inline-block;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;border:1px solid #33333a;border-radius:999px;padding:3px 9px;color:#c9c9cf}
+    .pros-acoes{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+    .pros-acoes .btn{padding:9px 14px;font-size:.9rem}
+    .btn-zap{background:#25D366!important;color:#062b16!important;border-color:#25D366!important}
+    .pros-tabela{width:100%;border-collapse:collapse;font-size:.9rem}
+    .pros-tabela th,.pros-tabela td{border-bottom:1px solid #1c1c20;padding:9px 6px;text-align:left;vertical-align:top}
+    .pros-tabela th{color:#9a9aa2;font-weight:600}
+    .pros-tabela select,.pros-tabela input{background:#0d0d10;color:#F6F6F8;border:1px solid #26262b;border-radius:8px;padding:6px 8px;font:inherit;max-width:150px}
+    .pros-aviso{border:1px solid #8a6d1d;background:#241c05;color:#f0d48a;border-radius:10px;padding:12px 14px;margin:14px 0;font-size:.92rem}
+    .pros-ok{border:1px solid #1d5c33;background:#07180d;color:#8fdcab;border-radius:10px;padding:12px 14px;margin:14px 0;font-size:.92rem}
+    .pros-linha{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+    .pros-msg{width:100%;min-height:150px;background:#0d0d10;color:#F6F6F8;border:1px solid #26262b;border-radius:10px;padding:12px;font:inherit;line-height:1.6;resize:vertical}
+  </style>
+  <section class="secao secao-topo">
+    <div class="wrap">
+      <div class="moldura">
+        <span class="codigo" aria-hidden="true">PR</span>
+        <div class="moldura-topo"><span class="mono">Prospecção — ferramenta do assinante</span><span class="mono some">Prospecção — página 07</span><span class="mono">Fig. 07</span></div>
+        <span class="mono" style="display:block;margin-top:18px">Prospecção</span>
+        <h1 class="pagina-titulo">Empresas sem site. <span class="serifa">Clientes</span> esperando um site.</h1>
+      </div>
+      <p class="secao-intro">A ferramenta busca empresas reais sem site próprio em todos os estados do Brasil. O assinante entra em contato, oferece o site e acompanha cada conversa até fechar.</p>
+      <div id="pros-aviso" class="pros-aviso" hidden></div>
+      <div id="pros-ok" class="pros-ok" hidden></div>
+
+      <!-- ===== VENDA / ACESSO ===== -->
+      <div id="pros-venda">
+        <div class="pros-grade">
+          <div class="pros-cartao">
+            <span class="mono">Assinatura mensal</span>
+            <div class="pros-preco">R$ 10,99<span style="font-size:1rem">/mês</span></div>
+            <p>Empresas sem site nos 27 estados, mensagens por nicho, controle de leads e WhatsApp direto com cada empresa. Cancele quando quiser — é só não renovar.</p>
+          </div>
+          <div class="pros-cartao">
+            <span class="mono">Como funciona</span>
+            <ol class="pros-passos">
+              <li>Pague R$ 10,99 via Pix com o QR Code ou o copia e cola.</li>
+              <li>Envie o comprovante no WhatsApp do Pablo.</li>
+              <li>Seu acesso é liberado e você já começa a prospectar.</li>
+            </ol>
+          </div>
+          <div class="pros-cartao pros-pix" id="pros-pix-caixa">
+            <span class="mono">Pagamento via Pix</span>
+            <div id="pros-pix-carregando"><p style="color:#9a9aa2;margin:14px 0">Carregando QR Code…</p></div>
+            <div id="pros-pix-conteudo" hidden>
+              <div class="qr" id="pros-qr"></div>
+              <textarea id="pros-pix-codigo" readonly aria-label="Código Pix copia e cola"></textarea>
+              <div class="pros-acoes" style="justify-content:center">
+                <button class="btn" type="button" id="pros-btn-copiar-pix">Copiar código Pix</button>
+                <button class="btn btn-ghost" type="button" id="pros-btn-copiar-chave">Copiar chave</button>
+              </div>
+              <p class="form-nota" style="margin-top:12px">Depois de pagar, envie o comprovante no WhatsApp para liberar seu acesso.</p>
+              <a class="btn btn-zap" id="pros-btn-comprovante" href="https://wa.me/5585991830920" target="_blank" rel="noopener">Enviar comprovante no WhatsApp</a>
+            </div>
+            <div id="pros-pix-indisponivel" hidden>
+              <p style="color:#9a9aa2;margin:14px 0">O pagamento via Pix ainda está sendo configurado. Enquanto isso, chame no WhatsApp para assinar.</p>
+              <a class="btn btn-zap" href="https://wa.me/5585991830920?text=Ol%C3%A1%2C%20Pablo!%20Quero%20assinar%20a%20ferramenta%20de%20prospec%C3%A7%C3%A3o%20(R%24%2010%2C99%2Fm%C3%AAs)." target="_blank" rel="noopener">Assinar pelo WhatsApp</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="contato-grade">
+          <div>
+            <h2 style="margin:0 0 6px">Pedir acesso</h2>
+            <p class="form-nota">Preencha e envie. O Pablo libera seu acesso depois de confirmar o pagamento.</p>
+            <form class="contato-form" id="pros-form-pedido" novalidate>
+              <div class="campo"><label for="pros-pedido-nome">Seu nome</label><input id="pros-pedido-nome" type="text" autocomplete="name" maxlength="80" required></div>
+              <div class="campo"><label for="pros-pedido-zap">Seu WhatsApp (só números)</label><input id="pros-pedido-zap" type="tel" autocomplete="tel" maxlength="15" placeholder="85991830920" required></div>
+              <div class="form-status" id="pros-pedido-status" role="status"></div>
+              <div><button class="btn" type="submit" style="width:100%">Pedir acesso — R$ 10,99/mês</button></div>
+            </form>
+          </div>
+          <div>
+            <h2 style="margin:0 0 6px">Já é assinante ou é o dono?</h2>
+            <p class="form-nota">Assinante entra só com o WhatsApp. O dono entra com WhatsApp + senha de admin.</p>
+            <form class="contato-form" id="pros-form-login" novalidate>
+              <div class="campo"><label for="pros-login-zap">WhatsApp</label><input id="pros-login-zap" type="tel" autocomplete="tel" maxlength="15" placeholder="85991830920" required></div>
+              <div class="campo"><label for="pros-login-senha">Senha (só o dono)</label><input id="pros-login-senha" type="password" autocomplete="current-password" placeholder="Deixe em branco se você é assinante"></div>
+              <div class="form-status" id="pros-login-status" role="status"></div>
+              <div><button class="btn" type="submit" style="width:100%">Entrar na ferramenta</button></div>
+            </form>
+            <form class="contato-form" id="pros-form-setup" hidden novalidate>
+              <h3 style="margin:14px 0 6px">Primeiro acesso do dono</h3>
+              <p class="form-nota">O admin ainda não foi configurado. Use o código de setup que você recebeu e crie sua senha (mínimo 8 caracteres).</p>
+              <div class="campo"><label for="pros-setup-codigo">Código de setup</label><input id="pros-setup-codigo" type="text" autocomplete="off" maxlength="20" required></div>
+              <div class="campo"><label for="pros-setup-senha">Criar senha de admin</label><input id="pros-setup-senha" type="password" autocomplete="new-password" required></div>
+              <div class="form-status" id="pros-setup-status" role="status"></div>
+              <div><button class="btn" type="submit" style="width:100%">Criar senha de admin</button></div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== FERRAMENTA ===== -->
+      <div id="pros-app" hidden>
+        <div class="pros-linha">
+          <span class="mono" id="pros-quem"></span>
+          <span style="flex:1"></span>
+          <button class="btn btn-ghost" type="button" id="pros-btn-sair">Sair</button>
+        </div>
+        <div class="pros-abas" role="tablist">
+          <button class="pros-aba ativa" type="button" data-pros-aba="empresas">Empresas sem site</button>
+          <button class="pros-aba" type="button" data-pros-aba="leads">Meus leads</button>
+          <button class="pros-aba" type="button" data-pros-aba="mensagens">Mensagens</button>
+          <button class="pros-aba" type="button" data-pros-aba="admin" id="pros-aba-admin" hidden>Admin</button>
+        </div>
+        <div id="pros-painel-empresas">
+          <div class="pros-filtros">
+            <input type="search" id="pros-busca" placeholder="Buscar nome, cidade ou ramo…" aria-label="Buscar empresa">
+            <select id="pros-filtro-estado" aria-label="Filtrar por estado"><option value="">Todos os estados</option></select>
+            <select id="pros-filtro-nicho" aria-label="Filtrar por nicho">
+              <option value="">Todos os nichos</option><option>Salão / Barbearia</option><option>Restaurante / Lanchonete</option><option>Loja</option><option>Oficina</option><option>Clínica / Estética</option><option>Pet shop</option><option>Academia</option>
+            </select>
+            <span class="mono" id="pros-contagem"></span>
+          </div>
+          <div class="pros-empresas" id="pros-lista-empresas"></div>
+          <p class="form-nota" id="pros-empresas-vazio" hidden>Nenhuma empresa encontrada com esses filtros — ou o diretório ainda está sendo montado. Volte em breve.</p>
+        </div>
+        <div id="pros-painel-leads" hidden>
+          <p class="form-nota">Seus leads, do primeiro contato até o fechamento. Mude o status conforme a conversa anda.</p>
+          <div style="overflow-x:auto"><table class="pros-tabela"><thead><tr><th>Empresa</th><th>Nicho</th><th>Cidade / UF</th><th>Status</th><th>WhatsApp</th><th></th></tr></thead><tbody id="pros-lista-leads"></tbody></table></div>
+          <p class="form-nota" id="pros-leads-vazio" hidden>Você ainda não adicionou leads. Vá na aba Empresas sem site e toque em “Adicionar aos leads”.</p>
+        </div>
+        <div id="pros-painel-mensagens" hidden>
+          <p class="form-nota">A mensagem muda conforme o nicho da empresa — cada ramo sente uma dor diferente por não ter site.</p>
+          <div class="pros-filtros">
+            <select id="pros-msg-nicho" aria-label="Nicho da empresa">
+              <option value="generico">Nicho: genérico</option><option value="salao">Salão / Barbearia</option><option value="restaurante">Restaurante / Lanchonete</option><option value="loja">Loja</option><option value="oficina">Oficina</option><option value="clinica">Clínica / Estética</option><option value="pet">Pet shop</option><option value="academia">Academia</option>
+            </select>
+            <input type="text" id="pros-msg-empresa" placeholder="Nome da empresa" maxlength="80">
+            <input type="text" id="pros-msg-nome" placeholder="Seu nome" maxlength="80">
+          </div>
+          <textarea class="pros-msg" id="pros-msg-texto" readonly aria-label="Mensagem gerada"></textarea>
+          <div class="pros-acoes">
+            <button class="btn" type="button" id="pros-btn-copiar-msg">Copiar mensagem</button>
+            <a class="btn btn-zap" id="pros-btn-enviar-msg" href="#" target="_blank" rel="noopener">Abrir no WhatsApp</a>
+          </div>
+        </div>
+        <div id="pros-painel-admin" hidden>
+          <h3 style="margin:6px 0">Admin — assinantes e recebimento</h3>
+          <div class="pros-grade" id="pros-admin-stats"></div>
+          <div style="overflow-x:auto"><table class="pros-tabela"><thead><tr><th>Assinante</th><th>WhatsApp</th><th>Status</th><th>Acesso até</th><th>Ações</th></tr></thead><tbody id="pros-admin-assinantes"></tbody></table></div>
+          <h3 style="margin:22px 0 6px">Configurações de recebimento (Pix)</h3>
+          <form class="contato-form" id="pros-form-config" novalidate>
+            <div class="campo"><label for="pros-config-pix">Chave Pix</label><input id="pros-config-pix" type="text" autocomplete="off" placeholder="Chave aleatória, CPF, e-mail ou telefone"></div>
+            <div class="campo"><label for="pros-config-titular">Titular da conta</label><input id="pros-config-titular" type="text" maxlength="60" placeholder="Pablo Silva"></div>
+            <div class="campo"><label for="pros-config-zap">WhatsApp que recebe os comprovantes</label><input id="pros-config-zap" type="tel" maxlength="15" value="5585991830920"></div>
+            <div class="form-status" id="pros-config-status" role="status"></div>
+            <div><button class="btn" type="submit">Salvar configurações</button></div>
+          </form>
+          <h3 style="margin:22px 0 6px">Banco de dados &amp; segurança</h3>
+          <div id="pros-admin-banco"><p class="form-nota">Carregando…</p></div>
+          <h3 style="margin:22px 0 6px">Trocar senha de admin</h3>
+          <form class="contato-form" id="pros-form-senha" novalidate>
+            <div class="campo"><label for="pros-senha-atual">Senha atual</label><input id="pros-senha-atual" type="password" autocomplete="current-password" required></div>
+            <div class="campo"><label for="pros-senha-nova">Nova senha (mínimo 8 caracteres)</label><input id="pros-senha-nova" type="password" autocomplete="new-password" required></div>
+            <div class="form-status" id="pros-senha-status" role="status"></div>
+            <div><button class="btn" type="submit">Trocar senha (encerra outras sessões)</button></div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
 <!-- ================= PRIVACY ================= -->
 <div class="pagina" data-pagina="/privacy">
   <section class="secao secao-topo">
@@ -1201,6 +1392,7 @@ main,.pagina{overflow-x:clip}
         <a href="#/ai-lab" data-rota="/ai-lab">AI Lab</a>
         <a href="#/skills" data-rota="/skills">Habilidades</a>
         <a href="#/contact" data-rota="/contact">Contato</a>
+        <a href="#/prospeccao" data-rota="/prospeccao">Prospecção</a>
       </nav>
       <div>
         <h3>Legal e social</h3>
@@ -1258,7 +1450,7 @@ main,.pagina{overflow-x:clip}
   [ ] Suas habilidades reais em SITE.skills (status: "Em prática" ou "Estudando")
 
   ROTAS (por hash): #/  #/about  #/projects  #/project/<slug>
-  #/ai-lab  #/skills  #/contact  #/privacy  #/cookies — senão, 404.
+  #/ai-lab  #/skills  #/contact  #/privacy  #/cookies  #/prospeccao — senão, 404.
 
   PUBLICAÇÃO GRÁTIS (Vercel): coloque este arquivo num repositório do
   GitHub, importe em vercel.com com "Add New Project" e Deploy. Funciona
@@ -1269,6 +1461,7 @@ main,.pagina{overflow-x:clip}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 <script>
 "use strict";
 /* ============================================================
@@ -1531,9 +1724,10 @@ var TITULOS = {
   "/contact": "Contato — PABLO WEB",
   "/privacy": "Política de Privacidade — PABLO WEB",
   "/cookies": "Política de Cookies — PABLO WEB",
+  "/prospeccao": "Prospecção — PABLO WEB",
   "/404": "404 — PABLO WEB"
 };
-var ROTAS = ["/","/about","/projects","/ai-lab","/skills","/contact","/privacy","/cookies"];
+var ROTAS = ["/","/about","/projects","/ai-lab","/skills","/contact","/privacy","/cookies","/prospeccao"];
 function rotaAtual(){
   var h = window.location.hash.replace(/^#/, "");
   if(!h || h === "/") return { pagina:"/", slug:null };
@@ -1564,6 +1758,7 @@ function aplicarRota(){
     document.querySelectorAll(".pagina.ativa .revela").forEach(function(e){ e.classList.add("visivel"); });
   }, 1600);
   if(r.pagina === "/ai-lab") iniciarRede();
+  if(r.pagina === "/prospeccao") iniciarProspeccao();
   /* GSAP page transition: quick fade-rise of the incoming page
      (exit is instant — asymmetric timing, per UI/UX Pro Max §7). */
   if(window.__gsapPronto){
@@ -1572,6 +1767,362 @@ function aplicarRota(){
     setTimeout(function(){ if(window.ScrollTrigger) ScrollTrigger.refresh(); }, 140);
   }
 }
+
+/* ---------- Prospecção (#/prospeccao) ---------- */
+var Pros = {
+  zap: null, token: null, dono: false, empresas: [], leads: [], aba: "empresas",
+  nichos: {
+    generico: "Olá! Vi que a {empresa} ainda não tem um site próprio. Hoje muita gente procura no Google antes de ligar ou visitar — sem site, esses clientes acabam indo para o concorrente. Eu crio sites rápidos e profissionais para negócios como o seu. Posso te mostrar como ficaria o da {empresa}?",
+    salao: "Olá! Vi que a {empresa} ainda não tem um site próprio. Cliente de salão e barbearia procura preço, serviços e agendamento no Google antes de decidir — sem site, vocês perdem esse cliente para quem aparece primeiro. Eu crio sites com agendamento e galeria de trabalhos. Quer ver como ficaria o da {empresa}?",
+    restaurante: "Olá! Vi que a {empresa} ainda não tem um site próprio. Quem procura onde comer olha cardápio, fotos e avaliações no Google antes de sair de casa — sem site, o cliente escolhe outro lugar. Eu crio sites com cardápio online e pedido pelo WhatsApp. Posso mostrar como ficaria o da {empresa}?",
+    loja: "Olá! Vi que a {empresa} ainda não tem um site próprio. Hoje o cliente pesquisa o produto no Google antes de ir à loja — sem site, ele compra de quem aparece. Eu crio sites que mostram seus produtos e trazem o cliente até você. Quer ver como ficaria o da {empresa}?",
+    oficina: "Olá! Vi que a {empresa} ainda não tem um site próprio. Quando o carro quebra, o dono procura oficina no Google e liga para a primeira que passa confiança — sem site, vocês nem aparecem nessa hora. Eu crio sites simples que mostram serviços e avaliações. Posso mostrar como ficaria o da {empresa}?",
+    clinica: "Olá! Vi que a {empresa} ainda não tem um site próprio. Paciente e cliente de estética pesquisam muito antes de marcar — sem site, não há onde ver tratamentos, preços e avaliações. Eu crio sites que passam confiança e facilitam o agendamento. Quer ver como ficaria o da {empresa}?",
+    pet: "Olá! Vi que a {empresa} ainda não tem um site próprio. Dono de pet procura banho, tosa e veterinário no Google e escolhe pelo que vê — sem site, vocês perdem para quem mostra fotos e serviços. Eu crio sites com galeria e agendamento. Posso mostrar como ficaria o da {empresa}?",
+    academia: "Olá! Vi que a {empresa} ainda não tem um site próprio. Quem quer treinar compara planos, horários e estrutura no Google antes de visitar — sem site, a decisão vai para o concorrente. Eu crio sites com planos e matrícula online. Quer ver como ficaria o da {empresa}?"
+  }
+};
+function prosApi(action, dados) {
+  return fetch("/api/prospeccao?action=" + encodeURIComponent(action), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(dados || {})
+  }).then(function (r) { return r.json().then(function (j) { j._status = r.status; return j; }); })
+  .catch(function () { return { error: "rede", message: "Sem conexão com o servidor. Tente de novo." }; });
+}
+function prosAviso(msg) {
+  var el = document.getElementById("pros-aviso");
+  if (!msg) { el.hidden = true; el.textContent = ""; return; }
+  el.hidden = false; el.textContent = msg;
+}
+function prosOk(msg) {
+  var el = document.getElementById("pros-ok");
+  if (!msg) { el.hidden = true; el.textContent = ""; return; }
+  el.hidden = false; el.textContent = msg;
+}
+function prosZapLink(numero, texto) {
+  return "https://wa.me/" + String(numero || "").replace(/\D/g, "") + (texto ? "?text=" + encodeURIComponent(texto) : "");
+}
+function prosMsgNicho(nicho, empresa, nome) {
+  var t = Pros.nichos[nicho] || Pros.nichos.generico;
+  t = t.split("{empresa}").join(empresa || "sua empresa");
+  return nome ? t + "\n\n— " + nome : t;
+}
+function prosCarregarQr(payload) {
+  var caixa = document.getElementById("pros-qr");
+  if (!caixa) return;
+  function desenhar() {
+    if (!window.qrcode) return;
+    caixa.innerHTML = "";
+    try {
+      var qr = qrcode(0, "M");
+      qr.addData(payload);
+      qr.make();
+      caixa.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 4 });
+    } catch (e) { caixa.innerHTML = "<p style='color:#9a9aa2'>Não foi possível desenhar o QR Code — use o código copia e cola abaixo.</p>"; }
+  }
+  if (window.qrcode) { desenhar(); return; }
+  var s = document.createElement("script");
+  s.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js";
+  s.onload = desenhar;
+  s.onerror = function () { caixa.innerHTML = "<p style='color:#9a9aa2'>Não foi possível carregar o gerador de QR Code — use o código copia e cola abaixo.</p>"; };
+  document.head.appendChild(s);
+}
+function prosCarregarPix() {
+  prosApi("pixPayload", {}).then(function (j) {
+    document.getElementById("pros-pix-carregando").hidden = true;
+    if (j.error || !j.payload) {
+      document.getElementById("pros-pix-indisponivel").hidden = false;
+      return;
+    }
+    document.getElementById("pros-pix-conteudo").hidden = false;
+    document.getElementById("pros-pix-codigo").value = j.payload;
+    prosCarregarQr(j.payload);
+    document.getElementById("pros-btn-copiar-pix").onclick = function () {
+      var t = document.getElementById("pros-pix-codigo");
+      t.select();
+      if (navigator.clipboard) navigator.clipboard.writeText(j.payload);
+      else document.execCommand("copy");
+      prosOk("Código Pix copiado. Pague no app do seu banco e envie o comprovante no WhatsApp.");
+    };
+    document.getElementById("pros-btn-copiar-chave").onclick = function () {
+      if (navigator.clipboard) navigator.clipboard.writeText(j.pix_key);
+      prosOk("Chave Pix copiada.");
+    };
+    document.getElementById("pros-btn-comprovante").href = prosZapLink(j.whatsapp, "Olá, Pablo! Paguei a assinatura da ferramenta de prospecção (R$ 10,99). Segue o comprovante:");
+  });
+}
+function prosMostrarApp() {
+  document.getElementById("pros-venda").hidden = true;
+  document.getElementById("pros-app").hidden = false;
+  document.getElementById("pros-quem").textContent = (Pros.dono ? "Dono · Admin" : "Assinante") + " — " + Pros.zap;
+  document.getElementById("pros-aba-admin").hidden = !Pros.dono;
+  prosTrocarAba("empresas");
+  prosCarregarEmpresas();
+  prosCarregarLeads();
+  if (Pros.dono) prosCarregarAdmin();
+}
+function prosTrocarAba(aba) {
+  Pros.aba = aba;
+  var botoes = document.querySelectorAll("[data-pros-aba]");
+  for (var i = 0; i < botoes.length; i++) botoes[i].classList.toggle("ativa", botoes[i].getAttribute("data-pros-aba") === aba);
+  document.getElementById("pros-painel-empresas").hidden = aba !== "empresas";
+  document.getElementById("pros-painel-leads").hidden = aba !== "leads";
+  document.getElementById("pros-painel-mensagens").hidden = aba !== "mensagens";
+  document.getElementById("pros-painel-admin").hidden = aba !== "admin";
+  if (aba === "mensagens") prosAtualizarMsg();
+}
+function prosFiltrarEmpresas() {
+  var busca = (document.getElementById("pros-busca").value || "").toLowerCase();
+  var uf = document.getElementById("pros-filtro-estado").value;
+  var nicho = document.getElementById("pros-filtro-nicho").value;
+  var lista = Pros.empresas.filter(function (e) {
+    if (uf && e.state !== uf) return false;
+    if (nicho && (e.niche || "") !== nicho) return false;
+    if (busca) {
+      var alvo = ((e.name || "") + " " + (e.city || "") + " " + (e.niche || "")).toLowerCase();
+      if (alvo.indexOf(busca) < 0) return false;
+    }
+    return true;
+  });
+  var caixa = document.getElementById("pros-lista-empresas");
+  document.getElementById("pros-contagem").textContent = lista.length + " empresa(s)";
+  document.getElementById("pros-empresas-vazio").hidden = lista.length > 0;
+  caixa.innerHTML = lista.map(function (e, i) {
+    var msg = prosMsgNicho("generico", e.name, "");
+    var zap = e.phone ? prosZapLink(e.phone, msg) : "";
+    return '<article class="pros-empresa"><span class="pros-etiqueta">Sem site próprio</span>' +
+      '<h4>' + esc(e.name) + '</h4>' +
+      '<p>' + esc(e.niche || "Negócio local") + ' · ' + esc(e.city || "") + (e.city ? " — " : "") + esc(e.state || "") + '</p>' +
+      (e.phone ? '<p>WhatsApp: ' + esc(e.phone) + '</p>' : '<p>Sem telefone cadastrado</p>') +
+      '<div class="pros-acoes">' +
+      (zap ? '<a class="btn btn-zap" href="' + zap + '" target="_blank" rel="noopener">Chamar no WhatsApp</a>' : '') +
+      '<button class="btn btn-ghost" type="button" data-pros-add-lead="' + i + '">Adicionar aos leads</button>' +
+      '</div></article>';
+  }).join("");
+  var botoes = caixa.querySelectorAll("[data-pros-add-lead]");
+  for (var k = 0; k < botoes.length; k++) {
+    botoes[k].onclick = function () {
+      var e = lista[parseInt(this.getAttribute("data-pros-add-lead"), 10)];
+      prosApi("addLead", { whatsapp: Pros.zap, sessionToken: Pros.token, company_name: e.name, niche: e.niche, city: e.city, state: e.state, phone: e.phone }).then(function (j) {
+        if (j.error) { prosAviso(j.message || "Não foi possível adicionar o lead."); return; }
+        prosOk("“" + e.name + "” entrou nos seus leads.");
+        prosCarregarLeads();
+      });
+    };
+  }
+}
+function prosCarregarEmpresas() {
+  prosApi("listDirectory", { whatsapp: Pros.zap, sessionToken: Pros.token }).then(function (j) {
+    if (j.error) { prosAviso(j.message || "Não foi possível carregar as empresas."); Pros.empresas = []; }
+    else Pros.empresas = j.companies || [];
+    var sel = document.getElementById("pros-filtro-estado");
+    if (sel.options.length <= 1) {
+      ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"].forEach(function (uf) {
+        var o = document.createElement("option"); o.value = uf; o.textContent = uf; sel.appendChild(o);
+      });
+    }
+    prosFiltrarEmpresas();
+  });
+}
+function prosCarregarLeads() {
+  prosApi("listLeads", { whatsapp: Pros.zap, sessionToken: Pros.token }).then(function (j) {
+    Pros.leads = (j && j.leads) || [];
+    var corpo = document.getElementById("pros-lista-leads");
+    document.getElementById("pros-leads-vazio").hidden = Pros.leads.length > 0;
+    var status = ["novo","respondeu","pediu_orcamento","negociando","fechou","nao_quer","sem_resposta"];
+    corpo.innerHTML = Pros.leads.map(function (l) {
+      var opts = status.map(function (s) { return '<option value="' + s + '"' + (l.status === s ? " selected" : "") + '>' + s.replace(/_/g, " ") + '</option>'; }).join("");
+      var zap = l.phone ? prosZapLink(l.phone, prosMsgNicho("generico", l.company_name, "")) : "";
+      return '<tr><td>' + esc(l.company_name) + '</td><td>' + esc(l.niche || "—") + '</td><td>' + esc((l.city || "") + (l.city ? " / " : "") + (l.state || "")) + '</td>' +
+        '<td><select data-pros-lead-status="' + l.id + '">' + opts + '</select></td>' +
+        '<td>' + (zap ? '<a class="btn btn-zap" href="' + zap + '" target="_blank" rel="noopener">WhatsApp</a>' : '—') + '</td>' +
+        '<td><button class="btn btn-ghost" type="button" data-pros-lead-del="' + l.id + '">Remover</button></td></tr>';
+    }).join("");
+    var sels = corpo.querySelectorAll("[data-pros-lead-status]");
+    for (var i = 0; i < sels.length; i++) {
+      sels[i].onchange = function () {
+        prosApi("updateLead", { whatsapp: Pros.zap, sessionToken: Pros.token, id: this.getAttribute("data-pros-lead-status"), status: this.value });
+      };
+    }
+    var dels = corpo.querySelectorAll("[data-pros-lead-del]");
+    for (var k = 0; k < dels.length; k++) {
+      dels[k].onclick = function () {
+        var id = this.getAttribute("data-pros-lead-del");
+        prosApi("deleteLead", { whatsapp: Pros.zap, sessionToken: Pros.token, id: id }).then(function () { prosCarregarLeads(); });
+      };
+    }
+  });
+}
+function prosAtualizarMsg() {
+  var nicho = document.getElementById("pros-msg-nicho").value;
+  var empresa = document.getElementById("pros-msg-empresa").value.trim();
+  var nome = document.getElementById("pros-msg-nome").value.trim();
+  var texto = prosMsgNicho(nicho, empresa, nome);
+  document.getElementById("pros-msg-texto").value = texto;
+  var alvo = (document.getElementById("pros-msg-empresa").getAttribute("data-zap") || "");
+  document.getElementById("pros-btn-enviar-msg").href = prosZapLink(alvo, texto);
+}
+function prosCarregarAdmin() {
+  prosApi("adminOverview", { sessionToken: Pros.token }).then(function (j) {
+    if (j.error) { prosAviso(j.message || "Não foi possível carregar o admin."); return; }
+    var st = j.stats || {};
+    document.getElementById("pros-admin-stats").innerHTML =
+      '<div class="pros-cartao"><span class="mono">Assinantes ativos</span><div class="pros-preco">' + (st.active || 0) + '</div></div>' +
+      '<div class="pros-cartao"><span class="mono">Pedidos pendentes</span><div class="pros-preco">' + (st.pending || 0) + '</div></div>' +
+      '<div class="pros-cartao"><span class="mono">Receita mensal</span><div class="pros-preco">R$ ' + (((st.monthly_revenue_cents || 0) / 100).toFixed(2).replace(".", ",")) + '</div></div>';
+    var corpo = document.getElementById("pros-admin-assinantes");
+    corpo.innerHTML = (j.subscribers || []).map(function (s) {
+      var ate = s.access_until ? new Date(s.access_until).toLocaleDateString("pt-BR") : "—";
+      return '<tr><td>' + esc(s.name || "—") + '</td><td>' + esc(s.phone) + '</td><td>' + esc(s.status) + '</td><td>' + ate + '</td>' +
+        '<td><div class="pros-acoes">' +
+        '<button class="btn btn-ghost" type="button" data-pros-sub="activate" data-pros-tel="' + esc(s.phone) + '">Liberar 30 dias</button>' +
+        '<button class="btn btn-ghost" type="button" data-pros-sub="renew" data-pros-tel="' + esc(s.phone) + '">Renovar</button>' +
+        '<button class="btn btn-ghost" type="button" data-pros-sub="block" data-pros-tel="' + esc(s.phone) + '">Bloquear</button>' +
+        '<button class="btn btn-ghost" type="button" data-pros-sub="remove" data-pros-tel="' + esc(s.phone) + '">Remover</button>' +
+        '</div></td></tr>';
+    }).join("");
+    var botoes = corpo.querySelectorAll("[data-pros-sub]");
+    for (var i = 0; i < botoes.length; i++) {
+      botoes[i].onclick = function () {
+        var op = this.getAttribute("data-pros-sub"), tel = this.getAttribute("data-pros-tel");
+        prosApi("adminSetSubscriber", { sessionToken: Pros.token, phone: tel, op: op }).then(function (r) {
+          if (r.error) prosAviso(r.message || "Não foi possível atualizar o assinante.");
+          else { prosOk("Assinante atualizado."); prosCarregarAdmin(); }
+        });
+      };
+    }
+    var cfg = j.settings || {};
+    document.getElementById("pros-config-pix").value = cfg.pix_key || "";
+    document.getElementById("pros-config-titular").value = cfg.pix_holder || "";
+    document.getElementById("pros-config-zap").value = cfg.whatsapp || "5585991830920";
+  });
+  prosApi("getSecurityOverview", { sessionToken: Pros.token }).then(function (j) {
+    var caixa = document.getElementById("pros-admin-banco");
+    if (j.error) { caixa.innerHTML = "<p class='form-nota'>Não foi possível carregar os dados de segurança.</p>"; return; }
+    var c = j.counts || {};
+    caixa.innerHTML = '<p class="form-nota">Registros no banco — assinantes: ' + (c.subscribers || 0) + ' · leads: ' + (c.leads || 0) + ' · empresas: ' + (c.companies || 0) + ' · eventos de segurança: ' + (c.security_events || 0) + ' · sessões: ' + (c.admin_sessions || 0) + '.</p>' +
+      '<div style="overflow-x:auto"><table class="pros-tabela"><thead><tr><th>Quando</th><th>Evento</th><th>Detalhe</th></tr></thead><tbody>' +
+      (j.events || []).map(function (e) { return '<tr><td>' + esc(new Date(e.created_at).toLocaleString("pt-BR")) + '</td><td>' + esc(e.event_type) + '</td><td>' + esc(e.detail || "—") + '</td></tr>'; }).join("") +
+      '</tbody></table></div>';
+  });
+}
+function iniciarProspeccao() {
+  if (window.__prosIniciado) { prosCarregarPix(); return; }
+  window.__prosIniciado = true;
+  prosCarregarPix();
+  var salvoZap = localStorage.getItem("pros_zap"), salvoToken = localStorage.getItem("pros_token");
+  if (salvoZap && salvoToken) {
+    prosApi("authMe", { sessionToken: salvoToken, whatsapp: salvoZap }).then(function (j) {
+      if (j.ok) { Pros.zap = salvoZap; Pros.token = salvoToken; Pros.dono = !!j.owner; prosMostrarApp(); }
+    });
+  }
+  document.getElementById("pros-form-pedido").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var nome = document.getElementById("pros-pedido-nome").value.trim();
+    var zap = document.getElementById("pros-pedido-zap").value.replace(/\D/g, "");
+    var st = document.getElementById("pros-pedido-status");
+    st.textContent = "Enviando…";
+    prosApi("requestAccess", { name: nome, whatsapp: zap }).then(function (j) {
+      st.textContent = j.error ? (j.message || "Não foi possível enviar o pedido.") : "Pedido enviado! Pague via Pix acima e envie o comprovante no WhatsApp do Pablo para liberar seu acesso.";
+    });
+  });
+  document.getElementById("pros-form-login").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var zap = document.getElementById("pros-login-zap").value.replace(/\D/g, "");
+    var senha = document.getElementById("pros-login-senha").value;
+    var st = document.getElementById("pros-login-status");
+    if (!zap) { st.textContent = "Digite seu WhatsApp."; return; }
+    if (senha) {
+      st.textContent = "Verificando…";
+      prosApi("verifyAdmin", { whatsapp: zap, password: senha }).then(function (j) {
+        if (j.error === "not_claimed") { document.getElementById("pros-form-setup").hidden = false; st.textContent = "Admin ainda não configurado — crie sua senha abaixo."; return; }
+        if (j.error) { st.textContent = j.message || "Não foi possível entrar."; return; }
+        Pros.zap = zap; Pros.token = j.sessionToken; Pros.dono = true;
+        localStorage.setItem("pros_zap", zap); localStorage.setItem("pros_token", j.sessionToken);
+        prosMostrarApp();
+      });
+    } else {
+      st.textContent = "Verificando…";
+      prosApi("lookupAccess", { whatsapp: zap }).then(function (j) {
+        if (j.access === "active" || j.access === "owner") {
+          Pros.zap = zap; Pros.token = null; Pros.dono = j.access === "owner";
+          localStorage.setItem("pros_zap", zap);
+          prosMostrarApp();
+        } else if (j.access === "pending") { st.textContent = "Seu pedido está pendente. Pague via Pix e envie o comprovante no WhatsApp para o Pablo liberar."; }
+        else if (j.access === "expired") { st.textContent = "Seu acesso venceu. Renove a assinatura pagando novamente via Pix."; }
+        else if (j.access === "blocked") { st.textContent = "Este número está bloqueado. Fale com o Pablo no WhatsApp."; }
+        else { st.textContent = "Número não encontrado. Peça acesso no formulário ao lado."; }
+      });
+    }
+  });
+  document.getElementById("pros-form-setup").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var zap = document.getElementById("pros-login-zap").value.replace(/\D/g, "");
+    var codigo = document.getElementById("pros-setup-codigo").value.trim();
+    var senha = document.getElementById("pros-setup-senha").value;
+    var st = document.getElementById("pros-setup-status");
+    st.textContent = "Criando…";
+    prosApi("claimAdmin", { whatsapp: zap, code: codigo, password: senha }).then(function (j) {
+      st.textContent = j.error ? (j.message || "Não foi possível criar a senha.") : "Senha criada! Agora entre com ela no formulário de login.";
+      if (!j.error) document.getElementById("pros-form-setup").hidden = true;
+    });
+  });
+  document.getElementById("pros-btn-sair").addEventListener("click", function () {
+    if (Pros.token) prosApi("logoutAdmin", { sessionToken: Pros.token });
+    localStorage.removeItem("pros_zap"); localStorage.removeItem("pros_token");
+    Pros.zap = null; Pros.token = null; Pros.dono = false;
+    document.getElementById("pros-app").hidden = true;
+    document.getElementById("pros-venda").hidden = false;
+    prosOk("");
+  });
+  var abas = document.querySelectorAll("[data-pros-aba]");
+  for (var i = 0; i < abas.length; i++) abas[i].addEventListener("click", function () { prosTrocarAba(this.getAttribute("data-pros-aba")); });
+  document.getElementById("pros-busca").addEventListener("input", prosFiltrarEmpresas);
+  document.getElementById("pros-filtro-estado").addEventListener("change", prosFiltrarEmpresas);
+  document.getElementById("pros-filtro-nicho").addEventListener("change", prosFiltrarEmpresas);
+  ["pros-msg-nicho", "pros-msg-empresa", "pros-msg-nome"].forEach(function (id) {
+    document.getElementById(id).addEventListener("input", prosAtualizarMsg);
+    document.getElementById(id).addEventListener("change", prosAtualizarMsg);
+  });
+  document.getElementById("pros-btn-copiar-msg").addEventListener("click", function () {
+    var t = document.getElementById("pros-msg-texto");
+    t.select();
+    if (navigator.clipboard) navigator.clipboard.writeText(t.value);
+    else document.execCommand("copy");
+    prosOk("Mensagem copiada.");
+  });
+  document.getElementById("pros-form-config").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var st = document.getElementById("pros-config-status");
+    st.textContent = "Salvando…";
+    prosApi("adminUpdateSettings", {
+      sessionToken: Pros.token,
+      pix_key: document.getElementById("pros-config-pix").value.trim(),
+      pix_holder: document.getElementById("pros-config-titular").value.trim(),
+      whatsapp: document.getElementById("pros-config-zap").value.replace(/\D/g, "")
+    }).then(function (j) {
+      st.textContent = j.error ? (j.message || "Não foi possível salvar.") : "Configurações salvas. O QR Code e o copia e cola já usam a nova chave.";
+      if (!j.error) prosCarregarPix();
+    });
+  });
+  document.getElementById("pros-form-senha").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var st = document.getElementById("pros-senha-status");
+    st.textContent = "Trocando…";
+    prosApi("changeAdminPin", {
+      sessionToken: Pros.token,
+      currentPassword: document.getElementById("pros-senha-atual").value,
+      newPassword: document.getElementById("pros-senha-nova").value
+    }).then(function (j) {
+      if (j.error) { st.textContent = j.message || "Não foi possível trocar a senha."; return; }
+      Pros.token = j.sessionToken;
+      localStorage.setItem("pros_token", j.sessionToken);
+      st.textContent = "Senha trocada. Outras sessões foram encerradas.";
+    });
+  });
+}
+
 window.addEventListener("hashchange", aplicarRota);
 
 /* ---------- Loader: bigger entrance — scramble + boot steps, ends on
