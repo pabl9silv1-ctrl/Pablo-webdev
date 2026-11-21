@@ -1209,7 +1209,7 @@ main,.pagina{overflow-x:clip}
             <h2 style="margin:0 0 6px">Já é assinante ou é o dono?</h2>
             <p class="form-nota">Assinante entra só com o WhatsApp. O dono entra com WhatsApp + senha de admin.</p>
             <form class="contato-form" id="pros-form-login" novalidate>
-              <div class="campo"><label for="pros-login-zap">WhatsApp</label><input id="pros-login-zap" type="tel" autocomplete="tel" maxlength="15" placeholder="85991830920" required></div>
+              <div class="campo"><label for="pros-login-zap">WhatsApp</label><input id="pros-login-zap" type="tel" autocomplete="tel" maxlength="15" placeholder="5585991830920" required></div>
               <div class="campo"><label for="pros-login-senha">Senha (só o dono)</label><input id="pros-login-senha" type="password" autocomplete="current-password" placeholder="Deixe em branco se você é assinante"></div>
               <div class="form-status" id="pros-login-status" role="status"></div>
               <div><button class="btn" type="submit" style="width:100%">Entrar na ferramenta</button></div>
@@ -2064,6 +2064,7 @@ function iniciarProspeccao() {
     var st = document.getElementById("pros-setup-status");
     st.textContent = "Criando…";
     prosApi("claimAdmin", { whatsapp: zap, code: codigo, password: senha }).then(function (j) {
+      if (j.error === "not_owner") { st.textContent = "Este número não é o do dono. Use o WhatsApp com DDI: 5585991830920."; return; }
       st.textContent = j.error ? (j.message || "Não foi possível criar a senha.") : "Senha criada! Agora entre com ela no formulário de login.";
       if (!j.error) document.getElementById("pros-form-setup").hidden = true;
     });

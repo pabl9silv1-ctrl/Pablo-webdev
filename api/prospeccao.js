@@ -38,8 +38,18 @@ function sha256(s) {
 function onlyDigits(s) {
   return String(s || "").replace(/\D/g, "");
 }
+/* Normaliza o telefone para o formato com DDI (13 dígitos, ex.: 5585991830920).
+   O dono digita 85 99183-0920 (11 dígitos) e o campo do login sugere o número
+   sem o 55, então aceita com ou sem DDI: 10 ou 11 dígitos ganham o prefixo 55. */
+function normalizePhone(s) {
+  const d = onlyDigits(s);
+  if (d.length === 13 && d.startsWith("55")) return d;
+  if (d.length === 12 && d.startsWith("55")) return d;
+  if (d.length === 11 || d.length === 10) return "55" + d;
+  return d;
+}
 function isOwner(phone) {
-  return onlyDigits(phone) === OWNER_WHATSAPP;
+  return normalizePhone(phone) === OWNER_WHATSAPP;
 }
 function hashPassword(password, saltHex) {
   const salt = saltHex || crypto.randomBytes(16).toString("hex");
@@ -151,7 +161,7 @@ async function validSession(cfg, token, phone) {
   if (!r.ok || !Array.isArray(r.data) || !r.data.length) return null;
   const s = r.data[0];
   if (new Date(s.expires_at).getTime() < Date.now()) return null;
-  if (phone && onlyDigits(s.phone) !== onlyDigits(phone)) return null;
+  if (phone && normalizePhone(s.phone) !== normalizePhone(phone)) return null;
   return s;
 }
 async function requireAdmin(cfg, body) {
@@ -236,7 +246,7 @@ module.exports = async function handler(req, res) {
       const phone = onlyDigits(body.whatsapp);
       const code = String(body.code || "").trim();
       const password = String(body.password || "");
-      if (!isOwner(phone)) return send(res, 403, { error: "not_owner" });
+      if (!isOwner(phone)) return send(res, 403, { error: "not_owner", message: "Este número não é o do dono. Use o WhatsApp do dono com DDI: 5585991830920." });
       if (password.length < 8) return send(res, 400, { error: "weak_password", message: "A senha precisa de pelo menos 8 caracteres." });
       if (await checkLockout(cfg, phone)) return send(res, 429, { error: "locked", message: "Muitas tentativas. Aguarde 15 minutos." });
       const setupHash = process.env.PROSPECCAO_SETUP_CODE_HASH;
@@ -260,7 +270,7 @@ module.exports = async function handler(req, res) {
     if (action === "verifyAdmin") {
       const phone = onlyDigits(body.whatsapp);
       const password = String(body.password || "");
-      if (!isOwner(phone)) return send(res, 403, { error: "not_owner" });
+      if (!isOwner(phone)) return send(res, 403, { error: "not_owner", message: "Este número não é o do dono. Use o WhatsApp do dono com DDI: 5585991830920." });
       if (await checkLockout(cfg, phone)) return send(res, 429, { error: "locked", message: "Número bloqueado por 15 minutos após 5 senhas erradas." });
       const row = await getOwnerAuth(cfg);
       if (!row || !row.password_hash) return send(res, 400, { error: "not_claimed", message: "Admin ainda não configurado. Use o código de setup primeiro." });
