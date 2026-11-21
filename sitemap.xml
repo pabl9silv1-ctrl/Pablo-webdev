@@ -2,9 +2,9 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <!-- PABLO WEB é um site de página única com rotas por # (ex.: #/about).
        O Google ignora fragmentos (#...) em sitemaps, então só a home é listada.
-       URL provisória: confirmar após o deploy real na Vercel. -->
+       URL confirmada no ar: https://pablo-webdev.vercel.app/ -->
   <url>
-    <loc>https://pablo-web.vercel.app/</loc>
+    <loc>https://pablo-webdev.vercel.app/</loc>
     <lastmod>2026-11-20</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
