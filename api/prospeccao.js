@@ -26,11 +26,46 @@ const PRICE_CENTS = 1099; // R$ 10,99/mês
 const SESSION_HOURS = 12;
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_MINUTES = 15;
+/* Rate limit em memória (melhor esforço por instância serverless): protege as
+   ações públicas contra enumeração e spam sem depender de outro serviço. */
+const RATE_WINDOW_MS = 60 * 1000;
+const RATE_PUBLIC_PER_MIN = 60;
+const RATE_AUTH_PER_MIN = 20;
+const RATE_BUCKETS = new Map();
+const UF_LIST = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
+const LEAD_STATUSES = ["novo","respondeu","pediu_orcamento","negociando","fechou","nao_quer","sem_resposta"];
 
 /* ---------------- util ---------------- */
 function send(res, status, obj) {
-  res.status(status).setHeader("Content-Type", "application/json; charset=utf-8");
+  res.status(status)
+    .setHeader("Content-Type", "application/json; charset=utf-8")
+    .setHeader("X-Content-Type-Options", "nosniff")
+    .setHeader("Cache-Control", "no-store")
+    .setHeader("Referrer-Policy", "no-referrer");
   res.end(JSON.stringify(obj));
+}
+function clientIp(req) {
+  const fwd = req.headers && (req.headers["x-forwarded-for"] || req.headers["x-real-ip"]);
+  return String(fwd || "").split(",")[0].trim() || "unknown";
+}
+function rateLimited(req, action) {
+  const auth = action === "claimAdmin" || action === "verifyAdmin";
+  const limit = auth ? RATE_AUTH_PER_MIN : RATE_PUBLIC_PER_MIN;
+  const key = clientIp(req) + ":" + (auth ? "auth" : "public");
+  const now = Date.now();
+  let b = RATE_BUCKETS.get(key);
+  if (!b || now - b.start > RATE_WINDOW_MS) { b = { start: now, count: 0 }; RATE_BUCKETS.set(key, b); }
+  if (RATE_BUCKETS.size > 2000) { for (const [k, v] of RATE_BUCKETS) { if (now - v.start > RATE_WINDOW_MS) RATE_BUCKETS.delete(k); } }
+  b.count += 1;
+  return b.count > limit;
+}
+function isValidId(id) {
+  return typeof id === "string" && id.length > 0 && id.length <= 64 && /^[A-Za-z0-9-]+$/.test(id);
+}
+function isValidIsoDate(v) {
+  if (v === null || v === "") return true;
+  const d = new Date(v);
+  return !isNaN(d.getTime()) && /^\d{4}-\d{2}-\d{2}/.test(String(v));
 }
 function sha256(s) {
   return crypto.createHash("sha256").update(String(s)).digest("hex");
@@ -62,7 +97,9 @@ function checkPassword(password, stored) {
     if (parts.length !== 4 || parts[0] !== "pbkdf2") return false;
     const iters = parseInt(parts[1], 10);
     const hash = crypto.pbkdf2Sync(String(password), Buffer.from(parts[2], "hex"), iters, 32, "sha256").toString("hex");
-    return crypto.timingSafeEqual(Buffer.from(hash, "hex"), Buffer.from(parts[3], "hex"));
+    const a = Buffer.from(hash, "hex"), b = Buffer.from(parts[3], "hex");
+    if (a.length !== b.length) return false;
+    return crypto.timingSafeEqual(a, b);
   } catch (e) { return false; }
 }
 
@@ -170,13 +207,31 @@ async function requireAdmin(cfg, body) {
   if (!session) return null;
   return session;
 }
+/* Busca o assinante pelo número normalizado (com DDI 55). Assinantes
+   cadastrados antes da normalização ficaram salvos sem o DDI; nesse caso
+   busca pelo formato antigo e regrava normalizado (autocura). */
+async function findSubscriber(cfg, phone) {
+  const norm = normalizePhone(phone);
+  let r = await sb(cfg, "subscribers", "GET", { select: "*", phone: "eq." + norm });
+  if (r.ok && Array.isArray(r.data) && r.data.length) return r.data[0];
+  const legacy = onlyDigits(phone);
+  if (legacy && legacy !== norm) {
+    r = await sb(cfg, "subscribers", "GET", { select: "*", phone: "eq." + legacy });
+    if (r.ok && Array.isArray(r.data) && r.data.length) {
+      const row = r.data[0];
+      try { await sb(cfg, "subscribers", "PATCH", { phone: "eq." + legacy }, { phone: norm }); } catch (e) {}
+      row.phone = norm;
+      return row;
+    }
+  }
+  return null;
+}
 async function subscriberAccess(cfg, phone) {
-  phone = onlyDigits(phone);
+  phone = normalizePhone(phone);
   if (!phone) return { access: "not_found" };
   if (isOwner(phone)) return { access: "owner" };
-  const r = await sb(cfg, "subscribers", "GET", { select: "*", phone: "eq." + phone });
-  if (!r.ok || !Array.isArray(r.data) || !r.data.length) return { access: "not_found" };
-  const s = r.data[0];
+  const s = await findSubscriber(cfg, phone);
+  if (!s) return { access: "not_found" };
   if (s.status === "blocked") return { access: "blocked", subscriber: s };
   if (s.status !== "active") return { access: "pending", subscriber: s };
   if (s.access_until && new Date(s.access_until).getTime() < Date.now()) return { access: "expired", subscriber: s };
@@ -185,9 +240,8 @@ async function subscriberAccess(cfg, phone) {
 
 /* ---------------- handler ---------------- */
 module.exports = async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  /* Sem CORS aberto: o front chama esta rota na mesma origem, então nenhum
+     site de terceiros precisa — e não deve — chamar a API pelo navegador. */
   if (req.method === "OPTIONS") return res.status(204).end();
 
   let body = {};
@@ -197,6 +251,7 @@ module.exports = async function handler(req, res) {
   }
   const action = (req.query && req.query.action) || body.action || "";
   if (!action) return send(res, 400, { error: "missing_action" });
+  if (rateLimited(req, action)) return send(res, 429, { error: "rate_limited", message: "Muitas requisições. Aguarde um minuto e tente de novo." });
 
   const cfg = sbConfig(res);
   if (!cfg) return; // 503 já enviado
@@ -225,11 +280,11 @@ module.exports = async function handler(req, res) {
     }
     if (action === "requestAccess") {
       const name = String(body.name || "").trim().slice(0, 80);
-      const phone = onlyDigits(body.whatsapp || body.phone);
-      if (!name || phone.length < 10) return send(res, 400, { error: "invalid_data", message: "Informe seu nome e um WhatsApp válido." });
-      const existing = await sb(cfg, "subscribers", "GET", { select: "*", phone: "eq." + phone });
-      if (existing.ok && Array.isArray(existing.data) && existing.data.length) {
-        return send(res, 200, { ok: true, status: existing.data[0].status, message: "Você já tem um pedido com esse número." });
+      const phone = normalizePhone(body.whatsapp || body.phone);
+      if (!name || phone.length < 12) return send(res, 400, { error: "invalid_data", message: "Informe seu nome e um WhatsApp válido." });
+      const existing = await findSubscriber(cfg, phone);
+      if (existing) {
+        return send(res, 200, { ok: true, status: existing.status, message: "Você já tem um pedido com esse número." });
       }
       const ins = await sb(cfg, "subscribers", "POST", null, { phone, name, status: "pending" }, "return=representation");
       if (!ins.ok) return send(res, 500, { error: "db_error" });
@@ -243,7 +298,7 @@ module.exports = async function handler(req, res) {
 
     /* ---------- admin: primeiro acesso ---------- */
     if (action === "claimAdmin") {
-      const phone = onlyDigits(body.whatsapp);
+      const phone = normalizePhone(body.whatsapp);
       const code = String(body.code || "").trim();
       const password = String(body.password || "");
       if (!isOwner(phone)) return send(res, 403, { error: "not_owner", message: "Este número não é o do dono. Use o WhatsApp do dono com DDI: 5585991830920." });
@@ -268,7 +323,7 @@ module.exports = async function handler(req, res) {
       return send(res, 200, { ok: true });
     }
     if (action === "verifyAdmin") {
-      const phone = onlyDigits(body.whatsapp);
+      const phone = normalizePhone(body.whatsapp);
       const password = String(body.password || "");
       if (!isOwner(phone)) return send(res, 403, { error: "not_owner", message: "Este número não é o do dono. Use o WhatsApp do dono com DDI: 5585991830920." });
       if (await checkLockout(cfg, phone)) return send(res, 429, { error: "locked", message: "Número bloqueado por 15 minutos após 5 senhas erradas." });
@@ -308,46 +363,64 @@ module.exports = async function handler(req, res) {
       return send(res, 200, { ok: true, companies: r.data || [] });
     }
     if (action === "addLead" || action === "listLeads" || action === "updateLead" || action === "deleteLead") {
-      const phone = onlyDigits(body.whatsapp);
+      const phone = normalizePhone(body.whatsapp);
       const a = await subscriberAccess(cfg, phone);
       if (a.access !== "active" && a.access !== "owner") return send(res, 403, { error: "no_access", access: a.access });
       if (action === "listLeads") {
-        const r = await sb(cfg, "leads", "GET", { select: "*", owner_phone: "eq." + phone, order: "created_at.desc" });
+        /* Leads antigos podem estar salvos sem o DDI; busca nos dois formatos. */
+        const legacy = onlyDigits(body.whatsapp);
+        const q = { select: "*", order: "created_at.desc" };
+        if (legacy && legacy !== phone) q.or = "(owner_phone.eq." + phone + ",owner_phone.eq." + legacy + ")";
+        else q.owner_phone = "eq." + phone;
+        const r = await sb(cfg, "leads", "GET", q);
         return send(res, 200, { ok: true, leads: r.data || [] });
       }
       if (action === "addLead") {
         const name = String(body.company_name || body.companyName || "").trim().slice(0, 120);
+        const uf = String(body.state || "").trim().toUpperCase();
         if (!name) return send(res, 400, { error: "invalid_data" });
+        if (uf && !UF_LIST.includes(uf)) return send(res, 400, { error: "invalid_data", message: "Estado (UF) inválido." });
         const ins = await sb(cfg, "leads", "POST", null, {
           owner_phone: phone, company_name: name,
           niche: String(body.niche || "").slice(0, 60) || null,
           city: String(body.city || "").slice(0, 80) || null,
-          state: String(body.state || "").slice(0, 2) || null,
-          phone: onlyDigits(body.phone) || null,
+          state: uf || null,
+          phone: normalizePhone(body.phone) || null,
           status: "novo", notes: String(body.notes || "").slice(0, 500) || null,
         }, "return=representation");
         if (!ins.ok) return send(res, 500, { error: "db_error" });
         return send(res, 200, { ok: true, lead: ins.data && ins.data[0] });
       }
       if (action === "updateLead") {
+        if (!isValidId(body.id)) return send(res, 400, { error: "invalid_data" });
         const patch = {};
-        if (body.status) patch.status = body.status;
+        if (body.status !== undefined) {
+          if (!LEAD_STATUSES.includes(body.status)) return send(res, 400, { error: "invalid_data", message: "Status de lead inválido." });
+          patch.status = body.status;
+        }
         if (body.notes !== undefined) patch.notes = String(body.notes).slice(0, 500);
-        if (body.follow_up_at !== undefined) patch.follow_up_at = body.follow_up_at || null;
-        const own = await sb(cfg, "leads", "GET", { select: "id", id: "eq." + body.id, owner_phone: "eq." + phone });
-        if (!own.ok || !own.data || !own.data.length) return send(res, 404, { error: "not_found" });
+        if (body.follow_up_at !== undefined) {
+          if (!isValidIsoDate(body.follow_up_at)) return send(res, 400, { error: "invalid_data", message: "Data de follow-up inválida." });
+          patch.follow_up_at = body.follow_up_at || null;
+        }
+        /* Posse checada pelo dono do lead (número normalizado), não pelo filtro da query. */
+        const own = await sb(cfg, "leads", "GET", { select: "id,owner_phone", id: "eq." + body.id });
+        if (!own.ok || !own.data || !own.data.length || normalizePhone(own.data[0].owner_phone) !== phone) return send(res, 404, { error: "not_found" });
         await sb(cfg, "leads", "PATCH", { id: "eq." + body.id }, patch);
         return send(res, 200, { ok: true });
       }
       if (action === "deleteLead") {
-        await sb(cfg, "leads", "DELETE", { id: "eq." + body.id, owner_phone: "eq." + phone });
+        if (!isValidId(body.id)) return send(res, 400, { error: "invalid_data" });
+        const own = await sb(cfg, "leads", "GET", { select: "id,owner_phone", id: "eq." + body.id });
+        if (!own.ok || !own.data || !own.data.length || normalizePhone(own.data[0].owner_phone) !== phone) return send(res, 404, { error: "not_found" });
+        await sb(cfg, "leads", "DELETE", { id: "eq." + body.id });
         return send(res, 200, { ok: true });
       }
     }
 
     /* ---------- admin ---------- */
     const admin = await requireAdmin(cfg, body);
-    if (["adminOverview", "adminSetSubscriber", "adminUnlockNumber", "adminUpdateSettings", "getSecurityOverview", "getSupabaseStatus", "changeAdminPin", "revokeAllSessions"].includes(action) && !admin) {
+    if (["adminOverview", "adminSetSubscriber", "adminUnlockNumber", "adminUpdateSettings", "getSecurityOverview", "getSupabaseStatus", "changeAdminPin", "revokeAllSessions", "adminExport"].includes(action) && !admin) {
       return send(res, 401, { error: "unauthorized", message: "Sessão de admin inválida ou expirada. Entre novamente." });
     }
     if (action === "adminOverview") {
@@ -366,7 +439,7 @@ module.exports = async function handler(req, res) {
       return send(res, 200, { ok: true, stats, subscribers: list, settings: { pix_key: settings.pix_key, pix_holder: settings.pix_holder, whatsapp: settings.whatsapp, price_cents: settings.price_cents } });
     }
     if (action === "adminSetSubscriber") {
-      const phone = onlyDigits(body.phone);
+      const phone = normalizePhone(body.phone);
       const op = body.op;
       if (!phone || !["activate", "renew", "block", "unblock", "remove"].includes(op)) return send(res, 400, { error: "invalid_data" });
       if (op === "remove") {
@@ -388,13 +461,19 @@ module.exports = async function handler(req, res) {
       return send(res, 200, { ok: true });
     }
     if (action === "adminUnlockNumber") {
-      return send(res, 200, { ok: true, message: "O bloqueio expira sozinho após 15 minutos sem novas tentativas. Para liberar agora, aguarde o prazo." });
+      const phone = normalizePhone(body.phone || body.whatsapp);
+      if (!phone) return send(res, 400, { error: "invalid_data" });
+      const legacy = onlyDigits(body.phone || body.whatsapp);
+      await sb(cfg, "auth_attempts", "DELETE", { phone: "eq." + phone, success: "eq.false" });
+      if (legacy && legacy !== phone) await sb(cfg, "auth_attempts", "DELETE", { phone: "eq." + legacy, success: "eq.false" });
+      await logEvent(cfg, OWNER_WHATSAPP, "number_unlocked", phone);
+      return send(res, 200, { ok: true });
     }
     if (action === "adminUpdateSettings") {
       const patch = {};
       if (body.pix_key !== undefined) patch.pix_key = String(body.pix_key || "").trim() || null;
       if (body.pix_holder !== undefined) patch.pix_holder = String(body.pix_holder || "").trim() || null;
-      if (body.whatsapp !== undefined) patch.whatsapp = onlyDigits(body.whatsapp) || OWNER_WHATSAPP;
+      if (body.whatsapp !== undefined) patch.whatsapp = normalizePhone(body.whatsapp) || OWNER_WHATSAPP;
       await sb(cfg, "settings", "PATCH", { id: "eq.1" }, patch);
       await logEvent(cfg, OWNER_WHATSAPP, "settings_updated", "Configurações de recebimento atualizadas");
       return send(res, 200, { ok: true });
@@ -413,6 +492,17 @@ module.exports = async function handler(req, res) {
         counts[t] = await sbCount(cfg, t);
       }
       return send(res, 200, { ok: true, configured: true, url: cfg.url, tables: counts });
+    }
+    if (action === "adminExport") {
+      /* Backup manual do banco (só o dono, com sessão válida). O plano Free do
+         Supabase não tem backup automático — este export é o caminho do dono
+         para guardar uma cópia fora do Supabase até migrar para o Pro. */
+      const subs = await sb(cfg, "subscribers", "GET", { select: "*", order: "created_at.desc", limit: "1000" });
+      const leads = await sb(cfg, "leads", "GET", { select: "*", order: "created_at.desc", limit: "1000" });
+      const companies = await sb(cfg, "companies", "GET", { select: "*", order: "state.asc,name.asc", limit: "1000" });
+      const settings = await getSettings(cfg);
+      await logEvent(cfg, OWNER_WHATSAPP, "backup_exported", "Exportação manual do banco (admin)");
+      return send(res, 200, { ok: true, exported_at: new Date().toISOString(), subscribers: subs.data || [], leads: leads.data || [], companies: companies.data || [], settings });
     }
     if (action === "changeAdminPin") {
       const row = await getOwnerAuth(cfg);
@@ -437,6 +527,7 @@ module.exports = async function handler(req, res) {
 
     return send(res, 400, { error: "unknown_action", action });
   } catch (e) {
-    return send(res, 500, { error: "server_error", message: String(e && e.message || e) });
+    /* Mensagem genérica de propósito: detalhe interno nunca volta ao cliente. */
+    return send(res, 500, { error: "server_error", message: "Erro interno. Tente de novo em instantes." });
   }
 };
