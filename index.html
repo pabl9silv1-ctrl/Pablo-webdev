@@ -2109,15 +2109,28 @@ function iniciarProspeccao() {
     var zap = document.getElementById("pros-login-zap").value.replace(/\D/g, "");
     var senha = document.getElementById("pros-login-senha").value;
     var st = document.getElementById("pros-login-status");
+    var btn = this.querySelector("button[type=submit]");
     if (!zap) { st.textContent = "Digite seu WhatsApp."; return; }
+    /* Trava o botão enquanto verifica: antes dava para tocar várias vezes
+       durante a demora e cada toque era uma tentativa — 5 toques erravam
+       a senha e bloqueavam o número por 15 minutos. */
+    if (btn) { btn.disabled = true; btn.textContent = "Entrando…"; }
+    function prosLoginFim() { if (btn) { btn.disabled = false; btn.textContent = "Entrar na ferramenta"; } }
+    function prosLoginOk(msg) {
+      prosAviso("");
+      prosOk(msg);
+      prosMostrarApp();
+      var ok = document.getElementById("pros-ok");
+      if (ok && ok.scrollIntoView) ok.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
     if (senha) {
       st.textContent = "Verificando…";
       prosApi("verifyAdmin", { whatsapp: zap, password: senha }).then(function (j) {
-        if (j.error === "not_claimed") { document.getElementById("pros-form-setup").hidden = false; st.textContent = "Admin ainda não configurado — crie sua senha abaixo."; return; }
-        if (j.error) { st.textContent = j.message || "Não foi possível entrar."; return; }
+        if (j.error === "not_claimed") { document.getElementById("pros-form-setup").hidden = false; st.textContent = "Admin ainda não configurado — crie sua senha abaixo."; prosLoginFim(); return; }
+        if (j.error) { st.textContent = j.message || "Não foi possível entrar."; prosLoginFim(); return; }
         Pros.zap = zap; Pros.token = j.sessionToken; Pros.dono = true;
         localStorage.setItem("pros_zap", zap); localStorage.setItem("pros_token", j.sessionToken);
-        prosMostrarApp();
+        prosLoginOk("Login de dono realizado com sucesso — bem-vindo de volta!");
       });
     } else {
       st.textContent = "Verificando…";
@@ -2125,11 +2138,11 @@ function iniciarProspeccao() {
         if (j.access === "active" || j.access === "owner") {
           Pros.zap = zap; Pros.token = null; Pros.dono = j.access === "owner";
           localStorage.setItem("pros_zap", zap);
-          prosMostrarApp();
-        } else if (j.access === "pending") { st.textContent = "Seu pedido está pendente. Pague via Pix e envie o comprovante no WhatsApp para o Pablo liberar."; }
-        else if (j.access === "expired") { st.textContent = "Seu acesso venceu. Renove a assinatura pagando novamente via Pix."; }
-        else if (j.access === "blocked") { st.textContent = "Este número está bloqueado. Fale com o Pablo no WhatsApp."; }
-        else { st.textContent = "Número não encontrado. Peça acesso no formulário ao lado."; }
+          prosLoginOk(j.access === "owner" ? "Login de dono realizado com sucesso — bem-vindo de volta!" : "Login realizado com sucesso — bem-vindo à ferramenta!");
+        } else if (j.access === "pending") { st.textContent = "Seu pedido está pendente. Pague via Pix e envie o comprovante no WhatsApp para o Pablo liberar."; prosLoginFim(); }
+        else if (j.access === "expired") { st.textContent = "Seu acesso venceu. Renove a assinatura pagando novamente via Pix."; prosLoginFim(); }
+        else if (j.access === "blocked") { st.textContent = "Este número está bloqueado. Fale com o Pablo no WhatsApp."; prosLoginFim(); }
+        else { st.textContent = "Número não encontrado. Peça acesso no formulário ao lado."; prosLoginFim(); }
       });
     }
   });

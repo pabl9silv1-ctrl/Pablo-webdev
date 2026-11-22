@@ -23,7 +23,7 @@ const crypto = require("crypto");
 
 const OWNER_WHATSAPP = "5585991830920"; // WhatsApp do dono — já é público no site.
 const PRICE_CENTS = 1099; // R$ 10,99/mês
-const SESSION_HOURS = 12;
+const SESSION_HOURS = 168; // 7 dias: o dono entra uma vez por semana, não a cada 12h.
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_MINUTES = 15;
 /* Rate limit em memória (melhor esforço por instância serverless): protege as
@@ -303,9 +303,10 @@ module.exports = async function handler(req, res) {
       const password = String(body.password || "");
       if (!isOwner(phone)) return send(res, 403, { error: "not_owner", message: "Este número não é o do dono. Use o WhatsApp do dono com DDI: 5585991830920." });
       if (password.length < 8) return send(res, 400, { error: "weak_password", message: "A senha precisa de pelo menos 8 caracteres." });
-      if (await checkLockout(cfg, phone)) return send(res, 429, { error: "locked", message: "Muitas tentativas. Aguarde 15 minutos." });
+      /* Bloqueio e dados do dono em paralelo: antes eram 2 idas ao banco em sequência. */
       const setupHash = process.env.PROSPECCAO_SETUP_CODE_HASH;
-      const row = await getOwnerAuth(cfg);
+      const [lockedClaim, row] = await Promise.all([checkLockout(cfg, phone), getOwnerAuth(cfg)]);
+      if (lockedClaim) return send(res, 429, { error: "locked", message: "Muitas tentativas. Aguarde 15 minutos." });
       if (row && row.password_hash) return send(res, 400, { error: "already_claimed", message: "O admin já foi configurado. Entre com sua senha ou use a troca de senha." });
       const expected = row && row.setup_code_hash ? row.setup_code_hash : setupHash;
       if (!expected || sha256(code) !== expected) {
@@ -313,32 +314,34 @@ module.exports = async function handler(req, res) {
         return send(res, 403, { error: "bad_code", message: "Código de setup inválido." });
       }
       const { stored } = hashPassword(password);
-      if (row) {
-        await sb(cfg, "owner_auth", "PATCH", { id: "eq.1" }, { password_hash: stored, setup_code_hash: null });
-      } else {
-        await sb(cfg, "owner_auth", "POST", null, { id: 1, password_hash: stored, setup_code_hash: null });
-      }
-      await recordAttempt(cfg, phone, true);
-      await logEvent(cfg, phone, "admin_claimed", "Senha do dono criada");
+      const saveOwner = row
+        ? sb(cfg, "owner_auth", "PATCH", { id: "eq.1" }, { password_hash: stored, setup_code_hash: null })
+        : sb(cfg, "owner_auth", "POST", null, { id: 1, password_hash: stored, setup_code_hash: null });
+      await Promise.all([saveOwner, recordAttempt(cfg, phone, true), logEvent(cfg, phone, "admin_claimed", "Senha do dono criada")]);
       return send(res, 200, { ok: true });
     }
     if (action === "verifyAdmin") {
       const phone = normalizePhone(body.whatsapp);
       const password = String(body.password || "");
       if (!isOwner(phone)) return send(res, 403, { error: "not_owner", message: "Este número não é o do dono. Use o WhatsApp do dono com DDI: 5585991830920." });
-      if (await checkLockout(cfg, phone)) return send(res, 429, { error: "locked", message: "Número bloqueado por 15 minutos após 5 senhas erradas." });
-      const row = await getOwnerAuth(cfg);
+      /* Antes o login fazia 5 idas ao banco uma atrás da outra (bloqueio,
+         dados do dono, tentativa, sessão, evento) — era essa a demora.
+         Agora bloqueio + dados rodam juntos, e tentativa + sessão + evento
+         também rodam juntos: de 5 viagens sequenciais para 2 rodadas. */
+      const [locked, row] = await Promise.all([checkLockout(cfg, phone), getOwnerAuth(cfg)]);
+      if (locked) return send(res, 429, { error: "locked", message: "Número bloqueado por 15 minutos após 5 senhas erradas." });
       if (!row || !row.password_hash) return send(res, 400, { error: "not_claimed", message: "Admin ainda não configurado. Use o código de setup primeiro." });
       if (!checkPassword(password, row.password_hash)) {
-        await recordAttempt(cfg, phone, false);
-        await logEvent(cfg, phone, "login_failed", "Senha incorreta");
+        await Promise.all([recordAttempt(cfg, phone, false), logEvent(cfg, phone, "login_failed", "Senha incorreta")]);
         return send(res, 403, { error: "bad_password", message: "Senha incorreta." });
       }
-      await recordAttempt(cfg, phone, true);
       const token = crypto.randomBytes(32).toString("hex");
       const expires = new Date(Date.now() + SESSION_HOURS * 3600 * 1000).toISOString();
-      await sb(cfg, "admin_sessions", "POST", null, { phone, token_hash: sha256(token), expires_at: expires, revoked: false });
-      await logEvent(cfg, phone, "login_ok", "Login do dono");
+      await Promise.all([
+        recordAttempt(cfg, phone, true),
+        sb(cfg, "admin_sessions", "POST", null, { phone, token_hash: sha256(token), expires_at: expires, revoked: false }),
+        logEvent(cfg, phone, "login_ok", "Login do dono"),
+      ]);
       return send(res, 200, { ok: true, sessionToken: token, expires_at: expires });
     }
     if (action === "authMe") {
